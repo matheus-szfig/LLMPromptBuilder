@@ -1,0 +1,39 @@
+# pyproject.toml
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "prompt_builder"
+version = "0.1.0"
+description = "This is a builder package that makes easier to reutilize and create conditional prompts in python"
+readme = "README.md"
+requires-python = ">=3.12"
+
+# Runtime deps (none required for the builder itself)
+dependencies = [
+    "pyyaml>=6.0.2",
+]
+
+[project.optional-dependencies]
+# Dev/test extras
+test = [
+  "pytest>=8.4.1",
+  "pytest-cov>=6.2.1",
+  "pytest-benchmark>=5.1.0",
+  "hypothesis>=6.138.3",
+  "pyyaml>=6.0.2",
+  "syrupy>=4.9.1",
+]
+
+[tool.setuptools]
+# Single-module project at src/prompt_builder.py
+py-modules = ["prompt_builder"]
+
+[tool.setuptools.package-dir]
+# Map module discovery to the src/ directory
+"" = "src"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
