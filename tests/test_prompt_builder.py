@@ -4,10 +4,17 @@ import pytest
 from hypothesis import given, strategies as st
 from prompt_builder import PromptBuilder, Section
 
+
 def test_basic_set_compile():
     pb = PromptBuilder()
     pb.set("role", "You are a data analyst.", title="Role", header_size=1)
-    pb.set("objective", ["Find patterns", "Be concise"], title="Objective", header_size=2, ordered=True)
+    pb.set(
+        "objective",
+        ["Find patterns", "Be concise"],
+        title="Objective",
+        header_size=2,
+        ordered=True,
+    )
 
     out = pb.compile()
     assert "# Role" in out
@@ -15,13 +22,20 @@ def test_basic_set_compile():
     assert "1. Find patterns" in out
     assert "2. Be concise" in out
 
+
 def test_per_level_numbering_no_contiguous():
     pb = PromptBuilder()
-    pb.set("workflow", [
-        "Collect data",
-        {"Preprocess": ["Clean", "Normalize"]},
-        "Analyze",
-    ], title="Workflow", header_size=2, ordered=True)
+    pb.set(
+        "workflow",
+        [
+            "Collect data",
+            {"Preprocess": ["Clean", "Normalize"]},
+            "Analyze",
+        ],
+        title="Workflow",
+        header_size=2,
+        ordered=True,
+    )
 
     out = pb.compile()
     # Parent level numbered 1..n
@@ -31,11 +45,16 @@ def test_per_level_numbering_no_contiguous():
     assert re.search(r"\n\s+1\. Clean", out)
     assert re.search(r"\n\s+2\. Normalize", out)
 
+
 def test_include_if_membership():
     pb = PromptBuilder()
-    pb.set("admin-tools", ["Manage users", "Audit logs"],
-           title="Admin Tools", header_size=3,
-           include_if={"user.role": ["admin", "owner"]})
+    pb.set(
+        "admin-tools",
+        ["Manage users", "Audit logs"],
+        title="Admin Tools",
+        header_size=3,
+        include_if={"user.role": ["admin", "owner"]},
+    )
 
     out_owner = pb.compile(context={"user": {"role": "owner"}})
     assert "Admin Tools" in out_owner
@@ -46,15 +65,19 @@ def test_include_if_membership():
     out_none = pb.compile(context=None)
     assert "Admin Tools" not in out_none
 
+
 def test_macros_in_title_and_content_and_literal_block():
     pb = PromptBuilder()
-    pb.set("lang", "Use {{user.lang}}.", title="Language ({{user.lang}})", header_size=3)
+    pb.set(
+        "lang", "Use {{user.lang}}.", title="Language ({{user.lang}})", header_size=3
+    )
     pb.set("note", "Literal: {{{ {{not_a_var}} }}}", title="Note")
 
     out = pb.compile(context={"user": {"lang": "pt-BR"}})
     assert "### Language (pt-BR)" in out
     assert "Use pt-BR." in out
     assert "Literal:  {{not_a_var}}" in out  # triple braces protect
+
 
 def test_append_and_auto_create():
     pb = PromptBuilder()
@@ -65,6 +88,7 @@ def test_append_and_auto_create():
     assert "- avoid\n  - jargon\n  - cursing" in out
     assert "- style: clear" in out
 
+
 def test_add_section_copy_semantics():
     base = Section(name="policy", content="- No secrets", title="Policy", header_size=4)
     pb = PromptBuilder().add_section(base, copy=True)
@@ -72,6 +96,7 @@ def test_add_section_copy_semantics():
     out = pb.compile()
     assert "MUTATED" not in out
     assert "No secrets" in out
+
 
 def test_json_roundtrip_same_output():
     pb = PromptBuilder()
@@ -83,6 +108,7 @@ def test_json_roundtrip_same_output():
     roundtripped = pb2.compile(context={"user": {"role": "tester"}})
     assert original == roundtripped
 
+
 def test_yaml_roundtrip_if_available():
     yaml = pytest.importorskip("yaml")
     pb = PromptBuilder()
@@ -91,11 +117,13 @@ def test_yaml_roundtrip_if_available():
     pb2 = PromptBuilder.from_yaml(y)
     assert pb2.compile() == pb.compile()
 
+
 def test_max_chars_truncation():
     pb = PromptBuilder()
     pb.set("long", "A" * 10, title="Long", max_chars=5)
     out = pb.compile()
     assert "AAAAA…" in out
+
 
 def test_remove_and_set_order():
     pb = PromptBuilder()
@@ -107,6 +135,7 @@ def test_remove_and_set_order():
     pb.remove("a")
     out2 = pb.compile()
     assert "# A" not in out2
+
 
 @given(st.lists(st.text(min_size=1, max_size=10), min_size=1, max_size=5))
 def test_lists_render_without_errors(xs):

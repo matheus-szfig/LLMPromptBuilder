@@ -37,3 +37,14 @@ py-modules = ["prompt_builder"]
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-q"
+
+[dependency-groups]
+dev = [
+  "black>=25.1.0",
+  "pytest>=8.4.1",
+  "pytest-cov>=6.2.1",
+  "pytest-benchmark>=5.1.0",
+  "hypothesis>=6.138.3",
+  "pyyaml>=6.0.2",
+  "syrupy>=4.9.1",
+]

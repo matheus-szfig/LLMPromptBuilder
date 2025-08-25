@@ -22,10 +22,11 @@ SectionPayload = Union[str, Iterable[Any], Mapping[str, Any]]
 
 # ---- Utilities ---------------------------------------------------------------
 
+
 def _lookup(path: str, data: Mapping[str, Any]) -> Any:
     """Dotted-path lookup, e.g., _lookup('user.locale', ctx)."""
     cur: Any = data
-    for part in path.split('.'):
+    for part in path.split("."):
         if isinstance(cur, Mapping) and part in cur:
             cur = cur[part]
         else:
@@ -33,7 +34,9 @@ def _lookup(path: str, data: Mapping[str, Any]) -> Any:
     return cur
 
 
-def _conditions_match(conds: Mapping[str, Any], context: Optional[Mapping[str, Any]]) -> bool:
+def _conditions_match(
+    conds: Mapping[str, Any], context: Optional[Mapping[str, Any]]
+) -> bool:
     """
     Evaluate simple include_if conditions against context.
 
@@ -69,6 +72,7 @@ _TRIPLE = re.compile(r"\{\{\{(.*?)\}\}\}", re.DOTALL)
 _DOUBLE = re.compile(r"\{\{\s*([^{}]+?)\s*\}\}")
 _PROT = re.compile(r"\uE000(\d+)\uE000")
 
+
 def _apply_macros(text: str, context: Mapping[str, Any]) -> str:
     """Very small mustache-like {{var}} with dotted paths and {{{escape}}} blocks."""
     if not text:
@@ -77,7 +81,7 @@ def _apply_macros(text: str, context: Mapping[str, Any]) -> str:
 
     def protect_store(m: re.Match) -> str:
         protected.append(m.group(1))
-        return f"\uE000{len(protected)-1}\uE000"
+        return f"\ue000{len(protected)-1}\ue000"
 
     # Protect triple-brace blocks from interpolation
     text = _TRIPLE.sub(protect_store, text)
@@ -98,6 +102,7 @@ def _apply_macros(text: str, context: Mapping[str, Any]) -> str:
 
 
 # ---- Nested rendering (dict-first design) -----------------------------------
+
 
 def _is_nested_structure(x: Any) -> bool:
     return isinstance(x, (Mapping, list, tuple, set))
@@ -159,7 +164,7 @@ def _render_sequence_at_level(
 
         # 1) Single-key dict shorthand: {"Preprocess": ["Clean", "Normalize"]}
         if isinstance(item, Mapping) and len(item) == 1:
-            (k, v), = item.items()
+            ((k, v),) = item.items()
             k_str = str(k).strip()
             if _is_nested_structure(v):
                 lines.append(f"{indent}{bullet} {k_str}")
@@ -226,7 +231,9 @@ def _render_nested(
     return [f"{'  ' * level}{bullet} {str(value).strip()}"]
 
 
-def _coerce_to_str(value: SectionPayload, *, ordered: bool = False, contiguous_order: bool = False) -> str:
+def _coerce_to_str(
+    value: SectionPayload, *, ordered: bool = False, contiguous_order: bool = False
+) -> str:
     """
     Render payloads to concise strings with unlimited (practical) nesting.
 
@@ -242,6 +249,7 @@ def _coerce_to_str(value: SectionPayload, *, ordered: bool = False, contiguous_o
 
 
 # ---- Core dataclasses --------------------------------------------------------
+
 
 @dataclass
 class Section:
@@ -262,7 +270,9 @@ class Section:
         if not self.title:
             return None
 
-        header_text = _apply_macros(self.title, context) if (context is not None) else self.title
+        header_text = (
+            _apply_macros(self.title, context) if (context is not None) else self.title
+        )
         stripped = header_text.lstrip()
 
         # If user passed explicit Markdown like "# Role", use as-is.
@@ -309,7 +319,9 @@ class PromptBuilder:
         contiguous_order: bool = False,  # deprecated, ignored
         header_size: int = 1,
     ) -> "PromptBuilder":
-        rendered = _coerce_to_str(value, ordered=ordered, contiguous_order=contiguous_order)
+        rendered = _coerce_to_str(
+            value, ordered=ordered, contiguous_order=contiguous_order
+        )
         section = Section(
             name=name,
             content=rendered,
@@ -323,10 +335,19 @@ class PromptBuilder:
             self.order.append(name)
         return self
 
-    def append(self, name: str, more: SectionPayload, *, ordered: bool = False, contiguous_order: bool = False) -> "PromptBuilder":
+    def append(
+        self,
+        name: str,
+        more: SectionPayload,
+        *,
+        ordered: bool = False,
+        contiguous_order: bool = False,
+    ) -> "PromptBuilder":
         existing = self.sections.get(name)
         if not existing:
-            return self.set(name, more, ordered=ordered, contiguous_order=contiguous_order)
+            return self.set(
+                name, more, ordered=ordered, contiguous_order=contiguous_order
+            )
         added = _coerce_to_str(more, ordered=ordered, contiguous_order=contiguous_order)
         new_content = (existing.content + "\n" + added).strip()
         self.sections[name] = Section(
@@ -339,7 +360,9 @@ class PromptBuilder:
         )
         return self
 
-    def add_section(self, section: Section, *, replace: bool = True, copy: bool = True) -> "PromptBuilder":
+    def add_section(
+        self, section: Section, *, replace: bool = True, copy: bool = True
+    ) -> "PromptBuilder":
         """
         Insert or replace a fully-formed Section.
 
@@ -354,13 +377,17 @@ class PromptBuilder:
         s = deepcopy(section) if copy else section
         exists = s.name in self.sections
         if exists and not replace:
-            raise ValueError(f"Section '{s.name}' already exists; set replace=True to overwrite.")
+            raise ValueError(
+                f"Section '{s.name}' already exists; set replace=True to overwrite."
+            )
         self.sections[s.name] = s
         if not exists:
             self.order.append(s.name)
         return self
 
-    def add_sections(self, sections: Iterable[Section], *, replace: bool = True, copy: bool = True) -> "PromptBuilder":
+    def add_sections(
+        self, sections: Iterable[Section], *, replace: bool = True, copy: bool = True
+    ) -> "PromptBuilder":
         """Bulk add Section instances. Iteration order defines append order for new names."""
         for sec in sections:
             self.add_section(sec, replace=replace, copy=copy)
@@ -382,7 +409,9 @@ class PromptBuilder:
         Convenience factory: builds a Section from structured payload,
         using the same rendering rules as `set()`.
         """
-        rendered = _coerce_to_str(value, ordered=ordered, contiguous_order=contiguous_order)
+        rendered = _coerce_to_str(
+            value, ordered=ordered, contiguous_order=contiguous_order
+        )
         return Section(
             name=name,
             content=rendered,
@@ -447,7 +476,8 @@ class PromptBuilder:
                     "title": v.title,
                     "include_if": v.include_if,
                     "header_size": v.header_size,
-                } for k, v in self.sections.items()
+                }
+                for k, v in self.sections.items()
             },
         }
 
@@ -479,7 +509,9 @@ class PromptBuilder:
             str: A JSON representation of the prompt builder, including metadata,
             section order, and section contents.
         """
-        return json.dumps(self.to_dict(), indent=4 if pretty else None, ensure_ascii=False)
+        return json.dumps(
+            self.to_dict(), indent=4 if pretty else None, ensure_ascii=False
+        )
 
     @classmethod
     def from_json(cls, source: str) -> "PromptBuilder":
